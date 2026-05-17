@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Function Vectors Are Two Populations</title>
+<meta name="description" content="A sign-preserving criterion reveals that function-vector heads split into writers and cancellers — invisible to magnitude-only ranking." />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- Scroll progress bar -->
+<div class="progress" id="progress"></div>
+
+<!-- Top navigation -->
+<nav class="topnav" id="topnav">
+  <div class="topnav-inner">
+    <div class="brand">function vectors are <span class="acc">two</span> populations</div>
+    <div class="navlinks">
+      <a href="#setup">Setup</a>
+      <a href="#discovery">Discovery</a>
+      <a href="#pattern">Pattern</a>
+      <a href="#everywhere">Everywhere</a>
+      <a href="#missed">Missed</a>
+      <a href="#mechanism">Mechanism</a>
+      <a href="#case-study">L11.H4</a>
+      <a href="#intervention">Intervention</a>
+      <a href="#cite">Cite</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="inner">
+    <div class="hero-tag">Anonymous &nbsp;·&nbsp; Submission</div>
+    <h1 class="hero-title">Function vectors are<br/><em>two</em> populations.</h1>
+    <p class="hero-sub">FV heads in language models don't form one functional class. They split into <em>writers</em> that push the rule-correct logit up and <em>cancellers</em> that push it down — invisible to magnitude-only ranking.</p>
+    <div class="hero-author">Anonymous Authors &nbsp;·&nbsp; <em>Camera-ready names will appear here</em></div>
+
+    <!-- HERO ANIMATION — cycles through baseline / ablate C / ablate W -->
+    <figure class="hero-anim" id="hero-anim" aria-label="Animation showing logit shift after ablating writers or cancellers">
+      <div class="hero-anim-caption">
+        <span class="hero-anim-label" id="hero-anim-label">Pythia-410M · hierarchical · baseline</span>
+        <span class="hero-anim-readout mono"><span id="hero-anim-value">+0.00</span> nats</span>
+      </div>
+      <svg id="hero-anim-svg" viewBox="0 0 720 92" preserveAspectRatio="xMidYMid meet" role="img"></svg>
+      <div class="hero-anim-legend">
+        <span class="hero-anim-step" data-step="0">baseline logit</span>
+        <span class="hero-anim-step" data-step="1"><span class="dot c"></span> ablate <em>cancellers</em> → correct rises</span>
+        <span class="hero-anim-step" data-step="2"><span class="dot w"></span> ablate <em>writers</em> → correct collapses</span>
+      </div>
+    </figure>
+
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="paper.pdf"><span class="ico">📄</span> Read the paper</a>
+      <a class="btn" href="https://anonymous.4open.science/r/function-vectors-two-populations-A3C6/code/" target="_blank" rel="noopener"><span class="ico">‹/›</span> Code</a>
+      <a class="btn" href="https://anonymous.4open.science/r/function-vectors-two-populations-A3C6/results/" target="_blank" rel="noopener"><span class="ico">▦</span> Data</a>
+      <a class="btn" href="#cite"><span class="ico">❝</span> BibTeX</a>
+    </div>
+
+    <div class="hero-numbers">
+      <div class="num-pill" data-cite="Paper Tab. 7 (Verdict across architectures and scale)"><span class="num" data-target="13 / 15">13 / 15</span><span class="lbl">cells canonical</span></div>
+      <div class="num-pill" data-cite="Paper Tab. 6 (FV-set sign-shuffle null, Holm–Bonferroni FWER α=0.05)"><span class="num" data-target="5 / 6">5 / 6</span><span class="lbl">sign-shuffle rejects</span></div>
+      <div class="num-pill" data-cite="Paper §4 (27 canceller heads across 6 main Pythia cells)"><span class="num" data-target="27">27</span><span class="lbl">canceller heads</span></div>
+      <div class="num-pill" data-cite="Paper Tab. 21 (canceller-ablation Δacc, paired bootstrap 95% CI)"><span class="num" data-target="+2–7 pp">+2–7 pp</span><span class="lbl">accuracy from ablation</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- 1. SETUP -->
+<section id="setup">
+  <div class="inner">
+    <div class="section-eyebrow reveal">01 &nbsp;·&nbsp; The setup</div>
+    <h2 class="section-title reveal delay-1">One number per head <em>isn't enough</em>.</h2>
+    <div class="prose reveal delay-2">
+      <p>In a language model doing in-context rule learning, a handful of attention heads carry most of the causal signal toward the correct label. The standard practice — going back to <span class="mono">todd&nbsp;et&nbsp;al.&nbsp;2024</span> — is to rank these <em>function-vector</em> heads by the magnitude of their causal effect and treat the top-K as one functional class.</p>
+      <p>Implicit in that recipe is a sign assumption: every high-magnitude head pushes the model <em>toward</em> the rule. We show this assumption fails empirically. Replacing the magnitude-only ranking with a sign-preserving one (refined direct logit attribution + permutation FDR) and then validating each candidate with path patching, the FV head set <em>splits</em>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2. DISCOVERY -->
+<section id="discovery">
+  <div class="inner-wide">
+    <div class="section-eyebrow reveal">02 &nbsp;·&nbsp; The discovery</div>
+    <h2 class="section-title reveal delay-1">Writers push <em>up</em>. Cancellers push <em>down</em>.</h2>
+    <div class="prose reveal delay-2">
+      <p>For each (model, task) cell we form prompt pairs that share the query but differ in rule, and measure each candidate head's <em>direct</em> contribution to the per-pair swing in <span class="mono">log&nbsp;p(correct)&nbsp;−&nbsp;log&nbsp;p(incorrect)</span>. Heads with a positive direct effect of ≥&nbsp;5% are <em>writers</em>; ≤&nbsp;−5% are <em>cancellers</em>. The split is robust to a&nbsp;±50% perturbation of either gate.</p>
+    </div>
+
+    <div class="stage reveal delay-3" id="discovery-stage">
+      <div class="stage-controls">
+        <span class="label">writer vs canceller on the same readout</span>
+        <span style="flex: 1"></span>
+        <button class="btn-mini" id="btn-discovery-replay">↺ Replay</button>
+      </div>
+      <div class="stage-controls picker-row">
+        <label class="ctrl-label">cell</label>
+        <select class="ctrl-select" id="disc-cell"></select>
+        <label class="ctrl-label">writer</label>
+        <select class="ctrl-select" id="disc-writer"></select>
+        <label class="ctrl-label">canceller</label>
+        <select class="ctrl-select" id="disc-canceller"></select>
+      </div>
+      <div id="discovery-card"></div>
+      <p class="hint mono">Both heads sit in the same model and the same prompt — only their direct effect on the readout differs.</p>
+    </div>
+
+    <p class="takeaway reveal">
+      Within a single FV-candidate set, two opposing populations co-exist at the same readout.
+    </p>
+  </div>
+</section>
+
+<!-- 3. PATTERN -->
+<section id="pattern">
+  <div class="inner-wide">
+    <div class="section-eyebrow reveal">03 &nbsp;·&nbsp; The pattern</div>
+    <h2 class="section-title reveal delay-1">Ablate W &nbsp;⇒&nbsp; logit drops. Ablate C &nbsp;⇒&nbsp; logit climbs.</h2>
+    <div class="prose reveal delay-2">
+      <p>For each of six main cells we group-ablate the writers, the cancellers, and their union, and measure the shift in <span class="mono">log&nbsp;p(correct)&nbsp;−&nbsp;log&nbsp;p(incorrect)</span> with paired-prompt BCa 95% CIs. The four-condition canonical pattern — opposite signs, both subgroups above 0.10 nats with CIs excluding zero, and an attenuated joint — holds in <span class="data-cite" data-src="Paper Tab. 3 — zero-strategy group lesion. Four-condition canonical verdict."><strong>6 / 6</strong></span> cells under zero-strategy ablation, and <span class="data-cite" data-src="Paper Tab. 5 — mean-strategy group lesion. The single miss is mod-1.4B (canceller +0.09 nats, below 0.10 threshold).">11 / 12</span> outcomes across two strategies.</p>
+    </div>
+
+    <div class="stage reveal delay-3" id="pattern-stage">
+      <div class="stage-controls">
+        <span class="label">6 main cells · BCa 95% CI</span>
+        <span class="muted">ablate W (red), ablate C (teal), joint (grey)</span>
+        <span style="flex: 1"></span>
+        <div class="toggle-grp" id="forest-strategy-picker">
+          <button class="btn-mini active" data-strategy="zero">zero strategy</button>
+          <button class="btn-mini" data-strategy="mean">mean strategy</button>
+        </div>
+        <button class="btn-mini" id="btn-forest-replay">↺ Replay</button>
+      </div>
+      <div id="forest-chart"></div>
+      <p class="hint mono" id="forest-hint">Canonical verdict holds in all 6 cells under zero-strategy ablation.</p>
+    </div>
+
+    <p class="takeaway reveal">
+      A sign-shuffle null over <span class="mono">n=10,000</span> draws rejects population homogeneity at family-wise α = 0.05 (Holm–Bonferroni) in <span class="data-cite" data-src="Paper Tab. 6 — empirical p ≤ 0.014 on 5 cells; mod-1.4B is the boundary case at p_emp = 0.104.">5 / 6 main cells</span>.
+    </p>
+  </div>
+</section>
+
+<!-- 4. EVERYWHERE -->
+<section id="everywhere">
+  <div class="inner-wide">
+    <div class="section-eyebrow reveal">04 &nbsp;·&nbsp; Everywhere</div>
+    <h2 class="section-title reveal delay-1">Three families. Six Pythia scales. <em>13 of 15 cells.</em></h2>
+    <div class="prose reveal delay-2">
+      <p>Beyond the six main Pythia cells we test the verdict on nine extension cells: Pythia 2.8B / 6.9B / 12B on both tasks, Qwen2.5-1.5B / 7B on modular, and GPT-2-medium on modular — covering a Llama-style attention family and a Conv1D-style family alongside GPT-NeoX. <strong>All 9 extension cells pass the signed-direction condition</strong>; two boundary cells (6.9B-modular, 12B-hierarchical) shift to PARTIAL because one CI grazes zero. Combined with the six main cells: <span class="data-cite" data-src="Paper Tab. 7 — combined verdict across 15 cells (6 main + 9 extension)."><strong>13 / 15 canonical, 2 / 15 partial, 0 / 15 sign-flipped</strong></span>.</p>
+    </div>
+
+    <div class="stage reveal delay-3" id="everywhere-stage">
+      <div class="stage-controls">
+        <span class="label">15 cells · group-lesion shifts (paper App. B.5)</span>
+        <span class="muted">writer ablation ↓ &nbsp; canceller ablation ↑ &nbsp; joint attenuated</span>
+        <span style="flex: 1"></span>
+      </div>
+      <div id="everywhere-chart"></div>
+    </div>
+
+    <p class="takeaway reveal">
+      The W / C structure is not a Pythia artefact — it transfers to a Llama-style architecture and to GPT-2 unchanged.
+    </p>
+  </div>
+</section>
+
+<!-- 5. WHY TODD MISSES THEM -->
+<section id="missed">
+  <div class="inner-wide">
+    <div class="section-eyebrow reveal">05 &nbsp;·&nbsp; Why magnitude misses one population</div>
+    <h2 class="section-title reveal delay-1">The Todd top-K is <em>task-conditionally biased</em>.</h2>
+    <div class="prose reveal delay-2">
+      <p>Todd's mean-ablation top-20 — the canonical FV identification — surfaces whichever sub-population <em>locally dominates</em> the readout on a given task, and silently misses the other. Pooled across the six main cells:</p>
+    </div>
+
+    <div class="stage reveal delay-3" id="overlap-stage">
+      <div class="stage-controls">
+        <span class="label">Todd top-20 ∩ sign-aware partition · pooled across 6 main cells</span>
+        <span style="flex: 1"></span>
+      </div>
+      <div id="overlap-chart"></div>
+    </div>
+
+    <p class="takeaway reveal">
+      Magnitude-only ranking is correct for finding heads with the largest direct effect — and exactly wrong for finding the population structure of those effects.
+    </p>
+  </div>
+</section>
+
+<!-- 6. MECHANISM -->
+<section id="mechanism">
+  <div class="inner-wide">
+    <div class="section-eyebrow reveal">06 &nbsp;·&nbsp; Mechanism</div>
+    <h2 class="section-title reveal delay-1">Cancellers <em>re-route</em> attention from labels to format.</h2>
+    <div class="prose reveal delay-2">
+      <p>Five-bucket QK source decomposition splits the readout-token attention mass into BOS, format-prefix, demonstration-input, demonstration-label, and query-input. Writers concentrate on demonstration labels; cancellers shift mass toward the format-prefix tokens. The direction of the difference is consistent in <span class="data-cite" data-src="Paper Tab. 11 — per-cell QK source mass; consistent sign of difference on the demo-label and format-prefix buckets."><strong>6 / 6</strong></span> cells on the two load-bearing buckets.</p>
+    </div>
+
+    <div class="stage reveal delay-3" id="qk-stage">
+      <div class="stage-controls">
+        <span class="label">attention mass at readout · 5 source buckets · per cell</span>
+        <span class="muted">writers (red) vs cancellers (teal)</span>
+        <span style="flex: 1"></span>
+        <div class="toggle-grp" id="qk-cell-picker"></div>
+      </div>
+      <div id="qk-chart"></div>
+    </div>
+
+    <p class="prose reveal" style="margin-top: 36px;">
+      A natural follow-up: <em>where do these heads sit?</em> If cancellers were a late-stage rewrite mechanism, they should cluster after the writers in depth. They don't — they live in the same early-to-mid layers, and 23 / 27 sit downstream of at least one writer in the same cell. (And per-source DLA: 20 / 27 cancellers — 74% — are content-driven, not sink-driven; the seven sink heads cluster near zero.)
+    </p>
+
+    <div class="stage reveal" id="layer-stage">
+      <div class="stage-controls">
+        <span class="label">layer geometry · all FV-candidate heads</span>
+        <span class="muted">writers (red) and cancellers (teal) by layer · size ∝ |DLA|</span>
+        <span style="flex: 1"></span>
+        <div class="toggle-grp" id="layer-cell-picker"></div>
+      </div>
+      <div id="layer-chart"></div>
+      <p class="hint mono">Dashed lines indicate the canceller has at least one writer earlier in the model — a <em>layer-position</em> annotation (paper's 23 / 27 claim), <strong>not</strong> a V-cascade causal link. The specific writer drawn here is the closest one below by layer.</p>
+    </div>
+
+    <p class="takeaway reveal">
+      Cancellers cluster in early-to-mid layers, not late, ruling out the "late-stage rewrite" explanation.
+    </p>
+  </div>
+</section>
+
+<!-- 7. CASE STUDY -->
+<section id="case-study">
+  <div class="inner-wide">
+    <div class="section-eyebrow reveal">07 &nbsp;·&nbsp; A single head</div>
+    <h2 class="section-title reveal delay-1">L11.H4 doesn't match <em>either</em> named template.</h2>
+    <div class="prose reveal delay-2">
+      <p>The dominant canceller in both Pythia-410M cells is layer 11, head 4. We narrow its mechanism with three interventions: V-shuffle (permute the head's value vectors across source positions), an OV singular-value decomposition, and V-composition with its dominant upstream writer L10.H9. The picture that emerges fits neither rank-1 copy-suppression nor V-cascade.</p>
+    </div>
+
+    <div class="case-grid">
+      <div class="stage reveal delay-3" id="vshuf-stage">
+        <div class="stage-controls">
+          <span class="label">V-shuffle on L11.H4 · 200 paired prompts</span>
+          <span style="flex: 1"></span>
+        </div>
+        <div id="vshuf-chart"></div>
+        <p class="hint mono">Permuting the head's value vectors collapses the negative DLA by ~82% on hier and ~53% on mod — the head reads content, not a fixed direction.</p>
+      </div>
+
+      <div class="stage reveal delay-3" id="ov-stage">
+        <div class="stage-controls">
+          <span class="label">OV singular spectrum · WoWv</span>
+          <span style="flex: 1"></span>
+          <div class="toggle-grp" id="ov-mode-picker">
+            <button class="btn-mini active" data-mode="signed">σₖ × cos</button>
+            <button class="btn-mini" data-mode="raw">raw σₖ</button>
+          </div>
+        </div>
+        <div id="ov-chart"></div>
+        <p class="hint mono">Top-1 mode carries only 2.8% of the Frobenius mass. Toggle to <span class="mono">raw σₖ</span> to see the spectrum is essentially flat — no rank-1 plateau.</p>
+      </div>
+    </div>
+
+    <p class="prose reveal" style="margin-top: 36px;">
+      The third intervention asks: <em>does L11.H4's role survive a change of template?</em> We transfer the head's identity from rule tasks to two vocabulary-ICL tasks (antonym, country-capital) and run a solo ablation on each. The role flips.
+    </p>
+
+    <div class="stage reveal" id="crosstpl-stage">
+      <div class="stage-controls">
+        <span class="label">L11.H4 solo ablation · 4 templates · paired bootstrap 95% CI</span>
+        <span class="muted">canceller (teal) · writer (red) · null (grey)</span>
+        <span style="flex: 1"></span>
+      </div>
+      <div id="crosstpl-chart"></div>
+    </div>
+
+    <p class="takeaway reveal">
+      Same head, four templates, three roles. The "address" L11.H4 carries over; what it computes is task-conditional — the behaviour a "suppress what was demonstrated" mechanism would predict.
+    </p>
+  </div>
+</section>
+
+<!-- 8. INTERVENTION -->
+<section id="intervention">
+  <div class="inner-wide">
+    <div class="section-eyebrow reveal">08 &nbsp;·&nbsp; What it means</div>
+    <h2 class="section-title reveal delay-1">Drop the cancellers, the correct answer <em>moves up</em>.</h2>
+    <div class="prose reveal delay-2">
+      <p>The population finding has an immediate, calibration-free consequence. Zero-ablating the canceller subgroup at inference time shifts the correct-incorrect log-probability difference by <span class="data-cite" data-src="Paper Tab. 3 — canceller-only group lesion, paired-prompt BCa 95% CI."><strong>+0.13 to +0.29 nats</strong></span> in 6 / 6 main cells (paired bootstrap CI excluding 0), and produces a directionally consistent <span class="data-cite" data-src="Paper Tab. 21 — Δacc with Wald 95% CI. CI excludes 0 on hier-410M (+6.8 pp)."><strong>+2 to +7&nbsp;pp</strong></span> accuracy effect (CI-confirmed on Pythia-410M hierarchical). No alpha tuning. No held-out calibration. Just remove what was opposing you.</p>
+    </div>
+
+    <div class="stage reveal delay-3" id="intervention-stage">
+      <div class="stage-controls">
+        <span class="label">canceller ablation · 6 main cells · paired BCa 95% CI</span>
+        <span style="flex: 1"></span>
+      </div>
+      <div id="intervention-chart"></div>
+    </div>
+
+    <div class="prose reveal" style="margin-top: 28px;">
+      <p>The same population structure is <em>not</em> useful for additive steering. Building a single steering vector from the writer mean — the analogue of Todd's FV with cancellers removed — produces a larger absolute held-out logit shift in 6 / 6 cells, but the direction is task-conditional and the partition effect on accuracy is not established under norm-matched injection. Population-level identification tells you <em>which heads to intervene on</em>; it doesn't tell you that aggregated steering vectors are the right tool to clean up per-prompt canceller behaviour.</p>
+    </div>
+
+    <!-- USE-CASE CARDS: what the W/C split actually changes downstream -->
+    <div class="usecase-grid reveal" id="usecase-grid">
+      <article class="usecase-card" data-mode="ablation">
+        <header>
+          <span class="usecase-tag">downstream · ablation</span>
+          <h3>Targeted canceller lesion</h3>
+        </header>
+        <div class="usecase-stat">
+          <span class="usecase-stat-num"><span class="data-cite" data-src="Paper Tab. 3 — canceller-only group lesion. Range across 6 main cells.">+0.13&nbsp;→&nbsp;+0.29</span></span>
+          <span class="usecase-stat-unit">nats correct-logit</span>
+        </div>
+        <p class="usecase-body">Zero-ablate just the canceller subgroup at inference. Calibration-free; CI excludes zero in 6 / 6 main cells; directional <span class="data-cite" data-src="Paper Tab. 21 — Δacc, paired bootstrap.">+2 to +7&nbsp;pp</span> accuracy.</p>
+        <p class="usecase-when mono">use when you have a frozen FV-candidate set and want a calibration-free read-out gain.</p>
+      </article>
+
+      <article class="usecase-card" data-mode="attribution">
+        <header>
+          <span class="usecase-tag">attribution · audit</span>
+          <h3>Magnitude-only top-K is biased</h3>
+        </header>
+        <div class="usecase-stat">
+          <span class="usecase-stat-num"><span class="data-cite" data-src="Paper Tab. 2 / Tab. 10 — Todd top-20 capture rate, pooled across 6 main cells.">64% / 8%</span></span>
+          <span class="usecase-stat-unit">canceller capture · hier / mod</span>
+        </div>
+        <p class="usecase-body">Todd-style top-K surfaces the locally dominant role and silently drops the other. <em>hier</em> top-20 is 64% cancellers (4% writers); <em>mod</em> reverses to 59% writers (8% cancellers).</p>
+        <p class="usecase-when mono">use when comparing FV inventories: pre-split, the same magnitude list means different things across tasks.</p>
+      </article>
+
+      <article class="usecase-card" data-mode="steering">
+        <header>
+          <span class="usecase-tag">steering · caveat</span>
+          <h3>Writer-mean steering doesn't transfer</h3>
+        </header>
+        <div class="usecase-stat">
+          <span class="usecase-stat-num"><span class="data-cite" data-src="Paper Tab. 19 — held-out α, logit shift only. Writer-only beats FV-mean in absolute shift in 6/6.">6 / 6</span> · <span class="data-cite" data-src="Paper Tab. 20 / D.2 — under-performs FV-mean transplant in accuracy in 6/6.">0 / 6</span></span>
+          <span class="usecase-stat-unit">logit ↑ · accuracy ↑</span>
+        </div>
+        <p class="usecase-body">Writer-only vector beats FV-mean on absolute held-out logit shift in 6 / 6 cells but loses on transplant accuracy in 6 / 6. Population identification ≠ recipe for an aggregated steering vector.</p>
+        <p class="usecase-when mono">avoid when: deploying additive steering for accuracy. The win is per-prompt ablation, not a vector.</p>
+      </article>
+    </div>
+
+    <p class="takeaway reveal">
+      Ablation works because cancellers are a population — not because cancellers can be summarised by a vector.
+    </p>
+  </div>
+</section>
+
+<!-- 9. CITE -->
+<section id="cite">
+  <div class="inner">
+    <div class="section-eyebrow reveal">09 &nbsp;·&nbsp; Cite</div>
+    <h2 class="section-title reveal delay-1">BibTeX</h2>
+    <div class="bibtex reveal delay-2">
+      <button class="bib-copy" id="bib-copy" aria-label="Copy BibTeX">Copy</button>
+<pre id="bib-text">@misc{anonymous2026fv_two_populations,
+  title  = {Function Vectors Are Two Populations: Writers and Cancellers in {ICL} Heads},
+  author = {Anonymous Authors},
+  year   = {2026},
+  note   = {Under review at ACL ARR}
+}</pre>
+    </div>
+    <p class="hint mono" style="text-align: left; margin-top: 12px;">Camera-ready BibTeX with author names and venue will replace this block on acceptance.</p>
+    <div class="prose reveal delay-3" style="margin-top: 28px;">
+      <p>Code, per-cell JSONs, and the full reproducibility pipeline ship as supplementary material. Camera-ready release will link to a public repository.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="page-footer">
+  <div class="inner">
+    <div class="muted">Anonymous submission &nbsp;·&nbsp; under review</div>
+    <div class="muted" style="margin-top: 6px;">All numbers on this page are pulled directly from the paper's <span class="mono">extracted_numbers.json</span>.</div>
+  </div>
+</footer>
+
+<!-- Drilldown modal — per-cell head breakdown -->
+<div class="modal-backdrop" id="drill-modal" role="dialog" aria-modal="true" aria-labelledby="drill-title" hidden>
+  <div class="modal-card">
+    <button class="modal-close" id="drill-close" aria-label="Close">×</button>
+    <header class="modal-head">
+      <span class="modal-tag mono" id="drill-tag">per-cell drilldown</span>
+      <h3 class="modal-title" id="drill-title">cell</h3>
+      <div class="modal-stats" id="drill-stats"></div>
+    </header>
+    <div class="modal-body" id="drill-body"></div>
+    <footer class="modal-foot">
+      <span class="mono muted">Numbers from paper Tab. 3 (group lesion) + Tab. 8 (per-head DLA).</span>
+    </footer>
+  </div>
+</div>
+
+<!-- Scripts (D3 must load first; data.js depends on nothing) -->
+<script src="d3.min.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script>
+  // Visible banner if D3 didn't load (CDN block / wrong path)
+  if (typeof d3 === "undefined") {
+    var b = document.createElement("div");
+    b.style.cssText = "position:fixed;top:0;left:0;right:0;background:#b95c44;color:white;padding:10px 16px;font:14px system-ui;z-index:9999;text-align:center;";
+    b.textContent = "d3.min.js failed to load. Visualizations are disabled. Make sure d3.min.js is next to index.html.";
+    document.body.prepend(b);
+  }
+</script>
+
+</body>
+</html>
