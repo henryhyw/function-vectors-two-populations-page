@@ -236,7 +236,7 @@
     <div class="section-eyebrow reveal">07 &nbsp;·&nbsp; A single head</div>
     <h2 class="section-title reveal delay-1">L11.H4 doesn't match <em>either</em> named template.</h2>
     <div class="prose reveal delay-2">
-      <p>The dominant canceller in both Pythia-410M cells is layer 11, head 4. We narrow its mechanism with three interventions: V-shuffle (permute the head's value vectors across source positions), an OV singular-value decomposition, and V-composition with its dominant upstream writer L10.H9. The picture that emerges fits neither rank-1 copy-suppression nor V-cascade.</p>
+      <p>The dominant canceller in both Pythia-410M cells is layer 11, head 4. We narrow its mechanism with four interventions: V-shuffle (permute the head's value vectors across source positions), an OV singular-value decomposition, V-composition with its dominant upstream writer L10.H9, and a cross-template sign-flip test. The picture that emerges fits neither rank-1 copy-suppression nor V-cascade.</p>
     </div>
 
     <div class="case-grid">
@@ -264,7 +264,7 @@
     </div>
 
     <p class="prose reveal" style="margin-top: 36px;">
-      The third intervention asks: <em>does L11.H4's role survive a change of template?</em> We transfer the head's identity from rule tasks to two vocabulary-ICL tasks (antonym, country-capital) and run a solo ablation on each. The role flips.
+      The fourth intervention asks: <em>does L11.H4's role survive a change of template?</em> We transfer the head's identity from rule tasks to two vocabulary-ICL tasks (antonym, country-capital) and run a solo ablation on each. The role flips.
     </p>
 
     <div class="stage reveal" id="crosstpl-stage">
@@ -369,7 +369,7 @@
     </div>
     <p class="hint mono" style="text-align: left; margin-top: 12px;">Camera-ready BibTeX with author names and venue will replace this block on acceptance.</p>
     <div class="prose reveal delay-3" style="margin-top: 28px;">
-      <p>Code, per-cell JSONs, and the full reproducibility pipeline ship as supplementary material. Camera-ready release will link to a public repository.</p>
+      <p>Code, per-cell JSONs, and the full reproducibility pipeline are available in the GitHub repository linked above.</p>
     </div>
   </div>
 </section>
